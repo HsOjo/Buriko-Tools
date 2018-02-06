@@ -26,4 +26,4 @@ class Script:
     def from_json(param):
         bs = BurikoScript()
         bs.load_json(param[0])
-        bs.save(param[1] == 'true', param[2])
+        bs.save(param[2], param[1] == 'true')

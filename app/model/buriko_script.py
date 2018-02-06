@@ -1,7 +1,7 @@
 from json import dump as json_dump, load as json_load
 
-from ..driver.hsio import HsIO
 from ..driver.baidu_translate import BaiduTranslate
+from ..driver.hsio import HsIO
 
 
 class BurikoScript():
@@ -37,6 +37,7 @@ class BurikoScript():
         self.code = []
         self.code_foot = []
         self.text = {}
+        self.text_content = {}
         self.bsb = ''
 
     def _clear(self):
@@ -110,8 +111,7 @@ class BurikoScript():
                         error_message = next_cmd_id == 249 and next_2_cmd_id == 244
                         translate = character_text or character_name or character_select or error_message
 
-                        text = self.text.get(p0)
-                        if text is None:
+                        if self.text.get(p0) is None and self.text_content.get(p0) is None:
                             offset = code_pos + p0
                             io.seek(offset)
 
@@ -124,14 +124,20 @@ class BurikoScript():
 
                             exists_info[p0] = {'encoding': encoding, 'offset': io.tell()}
                             text = io.read_string(encoding=encoding)
-                            self.text[p0] = text
+                            if translate:
+                                self.text_content[p0] = text
+                            else:
+                                self.text[p0] = text
                         else:
                             info = exists_info[p0]
                             if not raw and translate:
                                 if info['encoding'] == 'shift_jis':
                                     info['encoding'] = 'gbk'
                                     text = io.read_string(encoding=info['encoding'])
-                                    self.text[p0] = text
+                                    if translate:
+                                        self.text_content[p0] = text
+                                    else:
+                                        self.text[p0] = text
 
             load_text(self.code)
             load_text(self.code_foot)
@@ -177,6 +183,10 @@ class BurikoScript():
                 translate = character_text or character_name or character_select or error_message
 
                 code_text = self.text.get(p0)
+                if code_text is None:
+                    code_text = self.text_content.get(p0)
+                if code_text is None:
+                    raise Exception('miss code_text: %s' % p0)
 
                 if exists_info.get(p0) is None:
                     if raw:
@@ -221,36 +231,6 @@ class BurikoScript():
 
         io.close()
 
-    def translate(self):
-        def trans_by_code(code_list):
-            trans_list = []
-            for i in range(len(code_list)):
-                code = code_list[i]
-                if code['cmd_id'] == 3:
-                    p0 = code['param'][0]
-
-                    next_cmd_id = code_list[i + 1]['cmd_id']
-                    next_2_cmd_id = code_list[i + 2]['cmd_id']
-
-                    character_text = next_cmd_id == 320
-                    character_name = next_cmd_id == 3 and next_2_cmd_id == 320
-                    character_select = next_cmd_id == 9 and next_2_cmd_id == 2
-                    error_message = next_cmd_id == 249 and next_2_cmd_id == 244
-                    trans = character_text or character_name or character_select or error_message
-
-                    if trans:
-                        trans_list.append(p0)
-
-            for i in range(len(trans_list)):
-                index = trans_list[i]
-                text = self.text[index]
-                text = BaiduTranslate.translate(text, 'jp')
-                self.text[index] = text
-                print(i, len(trans_list), text)
-
-        trans_by_code(self.code)
-        trans_by_code(self.code_foot)
-
     @staticmethod
     def _calc_code_size(target):
         size = 0
@@ -266,6 +246,7 @@ class BurikoScript():
             'code_foot': self.code_foot,
             'bsb': self.bsb,
             'text': self.text,
+            'text_content': self.text_content,
         }
         json_dump(data, io, ensure_ascii=False)
         io.close()
@@ -280,4 +261,8 @@ class BurikoScript():
         self.text = {}
         for key, value in data['text'].items():
             self.text[int(key)] = value
+
+        self.text_content = {}
+        for key, value in data['text_content'].items():
+            self.text_content[int(key)] = value
         io.close()
