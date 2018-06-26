@@ -239,7 +239,7 @@ class BurikoScript():
         return size
 
     def save_json(self, path):
-        io = open(path, 'w')
+        io = open(path, 'w', encoding='utf8')
         data = {
             'pkg': self.pkg,
             'code': self.code,
@@ -252,7 +252,7 @@ class BurikoScript():
         io.close()
 
     def load_json(self, path):
-        io = open(path, 'r')
+        io = open(path, 'r', encoding='utf8')
         data = json_load(io)
         self.pkg = data['pkg']
         self.code = data['code']

@@ -2,6 +2,7 @@ from optparse import OptionParser
 
 from .controller.archive import Archive
 from .controller.script import Script
+from .controller.translate import Translate
 from .controller.test import Test
 
 
@@ -9,6 +10,7 @@ class Application:
     controller = {
         'archive': Archive,
         'script': Script,
+        'translate': Translate,
     }
 
     def __init__(self):
