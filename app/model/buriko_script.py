@@ -25,11 +25,14 @@ class BurikoScript():
         48: {'param': 0},  # 30 00 00 00
         56: {'param': 0},  # 38 00 00 00
         63: {'param': 2},  # 3f 00 00 00
+
+        123: {'param': 1},  # 7B 00 00 00
         127: {'param': 2},  # 7f 00 00 00
         320: {'param': 0},  # 40 01 00 00
         # foot
         249: {'param': 0},  # f9 00 00 00
         244: {'param': 0},  # f4 00 00 00
+
     }
 
     def __init__(self):
@@ -80,7 +83,10 @@ class BurikoScript():
                     code = {'cmd_id': cmd_id, 'param': param}
                     code_list.append(code)
                 else:
-                    raise Exception(path, 'unknown command id', cmd_id, 'position', io.tell() - 4)
+                    code = {'cmd_id': cmd_id, 'param': ()}
+                    code_list.append(code)
+                    print(path, 'unknown command id', cmd_id, '%#x' % cmd_id, 'position', '%#x' % (io.tell() - 4),(io.tell() - 4))
+                    #raise Exception(path, 'unknown command id', cmd_id,'%#x'%cmd_id, 'position','%#x'%(io.tell() - 4))
 
             while io.tell() < foot_pos:
                 read_command(self.code)
@@ -235,7 +241,10 @@ class BurikoScript():
     def _calc_code_size(target):
         size = 0
         for code in target:
-            size += 4 + BurikoScript.command[code['cmd_id']]['param'] * 4
+            if (code['cmd_id'] in BurikoScript.command.keys()) == False:
+                size += 4
+            else:
+                size += 4 + BurikoScript.command[code['cmd_id']]['param'] * 4
         return size
 
     def save_json(self, path):
@@ -248,7 +257,7 @@ class BurikoScript():
             'text': self.text,
             'text_content': self.text_content,
         }
-        json_dump(data, io, ensure_ascii=False)
+        json_dump(data, io, ensure_ascii=False, indent=4)
         io.close()
 
     def load_json(self, path):
